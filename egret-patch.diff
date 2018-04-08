@@ -1,0 +1,72 @@
+diff --git a/egret/egret.web.js b/egret/egret.web.js
+index ab75e1a..74e979c 100644
+--- a/egret/egret.web.js
++++ b/egret/egret.web.js
+@@ -1345,7 +1345,31 @@ var egret;
+                         video.width = 0;
+                     }, 1000);
+                 }
+-                this.checkFullScreen(this._fullscreen);
++                //this.checkFullScreen(this._fullscreen);
++                if (!this.$onPlay) {
++                    var ua = navigator.userAgent.toLowerCase();
++                    if (ua.indexOf("ucbrowser") >= 0) {
++                        this.$onPlay = function() {
++                            if (egret.Capabilities.os == "iOS") {
++                                video.style.width = "10px";
++                                video.style.height = "10px";
++                                video.style.left = "-10px";
++                                video.style.zIndex = "9999";
++                                video.removeAttribute("width");
++                                video.removeAttribute("height");
++                                if (!video.parentElement)
++                                    document.body.appendChild(video);
++                            }
++                            _this.videoPlay();
++                            egret.startTick(_this.markDirty, _this);
++                        }
++                    } else {
++                        this.$onPlay = function() {
++                            _this.checkFullScreen(_this._fullscreen);
++                        };
++                    }
++                }
++                this.$onPlay();
+             };
+             WebVideo.prototype.videoPlay = function () {
+                 this.userPause = false;
+@@ -1481,6 +1505,7 @@ var egret;
+                 this.userPause = false;
+                 egret.stopTick(this.markDirty, this);
+                 this.$invalidate();
++                this.video.pause();
+             };
+             Object.defineProperty(WebVideo.prototype, "volume", {
+                 /**
+@@ -1626,6 +1651,7 @@ var egret;
+                 var posterData = this.posterData;
+                 var width = this.getPlayWidth();
+                 var height = this.getPlayHeight();
++                /*
+                 if ((!this.isPlayed || egret.Capabilities.isMobile) && posterData) {
+                     node.image = posterData;
+                     node.imageWidth = width;
+@@ -1640,6 +1666,18 @@ var egret;
+                     bitmapData.webGLTexture = null;
+                     node.drawImage(0, 0, bitmapData.width, bitmapData.height, 0, 0, width, height);
+                 }
++                */
++                var data = bitmapData ? bitmapData : posterData;
++                if (data) {
++                    node.image = data;
++                    node.imageWidth = data == posterData ? width : bitmapData.width;
++                    node.imageHeight = data == posterData ? height : bitmapData.height;
++                    if (data == bitmapData) {
++                        egret.WebGLUtils.deleteWebGLTexture(bitmapData.webGLTexture);
++                        bitmapData.webGLTexture = null;
++                    }
++                    node.drawImage(0, 0, data.width, data.height, 0, 0, width, height);
++                }
+             };
+             WebVideo.prototype.markDirty = function () {
+                 this.$invalidate();
